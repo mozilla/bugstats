@@ -1,0 +1,7 @@
+argparse>=1.2.1
+libmozdata>=0.1.33
+unicodecsv>=0.14.1
+icalendar>=3.10
+whatthepatch>=0.0.4
+jinja2>=2.8
+requests>=2.12.4

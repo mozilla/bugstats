@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <title>Bugs fixed in nightly {{ major }} the {{ date }}</title>
+    <style>
+      td.cen {
+      text-align:center;
+      }
+      table {
+      border:1px solid black;
+      border-collapse:collapse;
+      margin-top:5px;
+      }
+      tr.col {
+      background-color: #E0E0E0;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Hi there,</p>
+    <p>Here are the bugs fixed in nightly {{ major }} the {{ date }} (UTC+0).</p>
+    <table border="1" id="bugs">
+      <thead>
+        <tr>
+          <th>Bug</th>
+          <th>Product</th>
+          <th>Component</th>
+          <th>Assignee</th>
+          <th># of patches</th>
+          <th>Added lines</th>
+          <th>Removed lines</th>
+          <th>Changes size</th>
+          <th>Tests size</th>
+          <th>Priority</th>
+          <th>Severity</th>
+          <th>Tracking {{ major }}</th>
+          <th>Status {{ major - 2 }}</th>
+          <th>Status {{ major - 1 }}</th>
+          <th>Status {{ major }}</th>
+          <th>SV</th>
+          <th>QF</th>
+          <th>Crash</th>
+          <th>Keywords</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i, d in enumerate(data) -%}
+        {% if i % 2 == 0 %}
+        <tr class="col">
+        {% else -%}
+        <tr>
+        {% endif -%}
+          <td><a title="{{ d['bug']['summary'] }}" href="{{ d['bug']['link'] }}">{{ d['bug']['id'] }}</a></td>
+          <td>{{ d['product'] }}</td>
+          <td>{{ d['component'] }}</td>
+          <td>{{ d['assignee'] }}</td>
+          <td title="# of patches" class="cen">{{ d['patches'] }}</td>
+          <td title="Added lines" class="cen">{{ d['addlines'] }}</td>
+          <td title="Removed lines" class="cen">{{ d['rmlines'] }}</td>
+          <td title="Changes size" class="cen">{{ d['size'] }}</td>
+          <td title="Tests size" class="cen">{{ d['test_size'] }}</td>
+          <td title="Priority" class="cen">{{ d['priority'] }}</td>
+          <td title="Severity" class="cen">{{ d['severity'] }}</td>
+          <td title="Tracking {{ major }}" class="cen">{{ d['tracking'] }}</td>
+          <td title="Status {{ major - 2 }}" class="cen">{{ d['status'][major - 2] }}</td>
+          <td title="Status {{ major - 1 }}" class="cen">{{ d['status'][major - 1] }}</td>
+          <td title="Status {{ major }}" class="cen">{{ d['status'][major] }}</td>
+          <td title="Softvision" class="cen">{{ d['qaverified'] }}</td>
+          <td title="Quantum flow [qf:p1]" class="cen">{{ d['quantum'] }}</td>
+          <td title="Crash" class="cen">{{ d['crash'] }}</td>
+          <td title="Keywords" class="cen">{{ d['keywords'] }}</td>
+        </tr>
+        {% endfor -%}
+        </tbody>
+    </table>
+    
+    <p>Sincerely,<br>
+      Release Management Bot
+    </p>
+  </body>
+</html>
