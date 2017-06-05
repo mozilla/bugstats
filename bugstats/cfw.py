@@ -73,7 +73,7 @@ def get_bz_params(v, date):
 def get_start_date():
     ics = requests.get('https://calendar.google.com/calendar/ical/mozilla.com_dbq84anr9i8tcnmhabatstv5co%40group.calendar.google.com/public/basic.ics') # NOQA
     cal = icalendar.Calendar.from_ical(ics.text)
-    dates = [ev['DTSTART'].dt for ev in cal.walk() if 'SUMMARY' in ev and 'Beta->Release' in ev['SUMMARY'] and ev['DTSTART'].dt > datetime.date.today()] # NOQA
+    dates = [ev['DTSTART'].dt for ev in cal.walk() if 'SUMMARY' in ev and 'Beta->Release' in ev['SUMMARY'] and ev['DTSTART'].dt >= datetime.date.today()] # NOQA
 
     return dates[0].strftime('%Y-%m-%d')
 
