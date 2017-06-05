@@ -70,12 +70,16 @@ def get_bz_params(v, date):
     return params
 
 
-def get_start_date():
+def get_start_date(date):
     ics = requests.get('https://calendar.google.com/calendar/ical/mozilla.com_dbq84anr9i8tcnmhabatstv5co%40group.calendar.google.com/public/basic.ics') # NOQA
     cal = icalendar.Calendar.from_ical(ics.text)
-    dates = [ev['DTSTART'].dt for ev in cal.walk() if 'SUMMARY' in ev and 'Beta->Release' in ev['SUMMARY'] and ev['DTSTART'].dt >= datetime.date.today()] # NOQA
-
-    return dates[0].strftime('%Y-%m-%d')
+    dates = [ev['DTSTART'].dt for ev in cal.walk() if 'SUMMARY' in ev and 'Beta->Release' in ev['SUMMARY']]
+    iso_date = date.isocalendar()
+    for d in dates:
+        isod = d.isocalendar()
+        if isod[0] == iso_date[0] and isod[1] == iso_date[1]:
+            # date hass in the same year and week as d
+            return d.strftime('%Y-%m-%d')
 
 
 def get_major():
@@ -329,8 +333,8 @@ def make_csv(date, major, bugs):
 
 def get_bugs(date='today'):
     major = get_major()
-    start_date = get_start_date()
     date = utils.get_date_ymd(date)
+    start_date = get_start_date(date)
     start_date = utils.get_date_ymd(start_date)
 
     if start_date <= date <= start_date + relativedelta(days=6):
