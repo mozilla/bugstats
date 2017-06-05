@@ -385,6 +385,8 @@ def send_email(emails=[], date='today'):
             print('Title: %s' % title)
             print('Body:')
             print(body)
+    else:
+        print('No data for {}'.format(date))
 
 
 if __name__ == '__main__':
