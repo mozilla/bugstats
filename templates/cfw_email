@@ -51,10 +51,10 @@
         {% else -%}
         <tr>
         {% endif -%}
-          <td><a title="{{ d['bug']['summary'] }}" href="{{ d['bug']['link'] }}">{{ d['bug']['id'] }}</a></td>
-          <td>{{ d['product'] }}</td>
-          <td>{{ d['component'] }}</td>
-          <td>{{ d['assignee'] }}</td>
+          <td><a title="{{ d['bug']['summary']|e }}" href="{{ d['bug']['link'] }}">{{ d['bug']['id'] }}</a></td>
+          <td>{{ d['product']|e }}</td>
+          <td>{{ d['component']|e }}</td>
+          <td>{{ d['assignee']|e }}</td>
           <td title="# of patches" class="cen">{{ d['patches'] }}</td>
           <td title="Added lines" class="cen">{{ d['addlines'] }}</td>
           <td title="Removed lines" class="cen">{{ d['rmlines'] }}</td>
@@ -69,7 +69,7 @@
           <td title="Softvision" class="cen">{{ d['qaverified'] }}</td>
           <td title="Quantum flow [qf:p1]" class="cen">{{ d['quantum'] }}</td>
           <td title="Crash" class="cen">{{ d['crash'] }}</td>
-          <td title="Keywords" class="cen">{{ d['keywords'] }}</td>
+          <td title="Keywords" class="cen">{{ d['keywords']|e }}</td>
         </tr>
         {% endfor -%}
         </tbody>
