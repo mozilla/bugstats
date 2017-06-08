@@ -171,24 +171,25 @@ def patch_analysis(patch):
         return 'test' in path and not path.endswith(term)
 
     for diff in whatthepatch.parse_patch(patch):
-        h = diff.header
-        # old_path = h.old_path[2:] if h.old_path.startswith('a/') else h.old_path
-        new_path = h.new_path[2:] if h.new_path.startswith('b/') else h.new_path
-
-        # Calc changes additions & deletions
-        counts = [(
-            old is None and new is not None,
-            new is None and old is not None
-        ) for old, new, _ in diff.changes]
-        counts = list(zip(*counts))  # inverse zip
-        info['changes_add'] += sum(counts[0])
-        info['changes_del'] += sum(counts[1])
-
-        # TODO: Split C/C++, Rust, Java, JavaScript, build system changes
-        if _is_test(new_path):
-            info['test_changes_size'] += len(diff.changes)
-        else:
-            info['changes_size'] += len(diff.changes)
+        if diff.header and diff.changes:
+            h = diff.header
+            # old_path = h.old_path[2:] if h.old_path.startswith('a/') else h.old_path
+            new_path = h.new_path[2:] if h.new_path.startswith('b/') else h.new_path
+            
+            # Calc changes additions & deletions
+            counts = [(
+                old is None and new is not None,
+                new is None and old is not None
+            ) for old, new, _ in diff.changes]
+            counts = list(zip(*counts))  # inverse zip
+            info['changes_add'] += sum(counts[0])
+            info['changes_del'] += sum(counts[1])
+            
+            # TODO: Split C/C++, Rust, Java, JavaScript, build system changes
+            if _is_test(new_path):
+                info['test_changes_size'] += len(diff.changes)
+            else:
+                info['changes_size'] += len(diff.changes)
 
     return info
 
