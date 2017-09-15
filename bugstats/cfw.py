@@ -12,6 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 import shutil
 import requests
 import re
+import six
 try:
     from urllib.request import urlopen
 except ImportError:
@@ -39,9 +40,9 @@ PATCH_INFO = {'changes_size': 0,
               'changes_add': 0,
               'changes_del': 0}
 
-    
+
 # This code is used to help release managers during the code freeze week
-    
+
 
 def get_bz_params(v, date):
     end_date = utils.get_date(date, -1)
@@ -71,6 +72,9 @@ def get_bz_params(v, date):
 
 
 def get_start_date(date):
+    if isinstance(date, six.string_types):
+        date = utils.get_date_ymd(date)
+
     ics = requests.get('https://calendar.google.com/calendar/ical/mozilla.com_dbq84anr9i8tcnmhabatstv5co%40group.calendar.google.com/public/basic.ics') # NOQA
     cal = icalendar.Calendar.from_ical(ics.text)
     dates = [ev['DTSTART'].dt for ev in cal.walk() if 'SUMMARY' in ev and 'Beta->Release' in ev['SUMMARY']]
@@ -175,7 +179,7 @@ def patch_analysis(patch):
             h = diff.header
             # old_path = h.old_path[2:] if h.old_path.startswith('a/') else h.old_path
             new_path = h.new_path[2:] if h.new_path.startswith('b/') else h.new_path
-            
+
             # Calc changes additions & deletions
             counts = [(
                 old is None and new is not None,
@@ -184,7 +188,7 @@ def patch_analysis(patch):
             counts = list(zip(*counts))  # inverse zip
             info['changes_add'] += sum(counts[0])
             info['changes_del'] += sum(counts[1])
-            
+
             # TODO: Split C/C++, Rust, Java, JavaScript, build system changes
             if _is_test(new_path):
                 info['test_changes_size'] += len(diff.changes)
@@ -332,13 +336,20 @@ def make_csv(date, major, bugs):
     return name, directory
 
 
-def get_bugs(date='today'):
-    major = get_major()
+def get_bugs(date, major, date_range):
+    if major == -1:
+        major = get_major()
     date = utils.get_date_ymd(date)
-    start_date = get_start_date(date)
-    start_date = utils.get_date_ymd(start_date)
+    if not date_range:
+        start_date = get_start_date(date)
+        start_date = utils.get_date_ymd(start_date)
+        end_date = start_date + relativedelta(days=6)
+    else:
+        dates = date_range.split('|')
+        dates = map(lambda x: utils.get_date_ymd(x.strip(' ')), dates)
+        start_date, end_date = tuple(dates)
 
-    if start_date <= date <= start_date + relativedelta(days=6):
+    if start_date <= date <= end_date:
         sdate = utils.get_date_str(date)
         data = {}
         Bugzilla(get_bz_params(major, sdate),
@@ -367,8 +378,8 @@ def get_bugs(date='today'):
     return major, []
 
 
-def send_email(emails=[], date='today'):
-    major, data = get_bugs(date)
+def send_email(emails=[], date='today', major=-1, date_range=''):
+    major, data = get_bugs(date, major, date_range)
     if data:
         date = utils.get_date(date)
         env = Environment(loader=FileSystemLoader('templates'))
@@ -402,8 +413,12 @@ if __name__ == '__main__':
                         default=[], help='emails')
     parser.add_argument('-d', '--date', dest='date',
                         action='store', default='today', help='date')
+    parser.add_argument('-m', '--major', dest='major', type=int,
+                        action='store', default=-1, help='Major version of nightly')
+    parser.add_argument('-r', '--range', dest='range',
+                        action='store', default='', help='Date range XXXX-XX-XX|XXXX-XX-XX')
     args = parser.parse_args()
-    send_email(emails=args.emails, date=args.date)
+    send_email(emails=args.emails, date=args.date, major=args.major, date_range=args.range)
 
 
 # wget "https://docs.google.com/spreadsheets/d/1Rn-F3Kg_1_VznIxxXkAGGL8mVMSAdamZZI4f1O2r8HA/gviz/tq?tqx=out:csv&sheet=in%2055"
