@@ -24,6 +24,7 @@ from libmozdata.socorro import ProductVersions
 from libmozdata import utils, hgmozilla, gmail
 from libmozdata.connection import Query
 import tempfile
+from . import config
 
 
 NIGHTLY_PAT = Bugzilla.get_landing_patterns(channels=['nightly'])
@@ -110,6 +111,11 @@ def is_qf_p1(whiteboard):
 
 
 def bug_handler(bug, data):
+    if bug['product'] in config.get_products_blacklist():
+        return
+    if bug['component'] in config.get_components_blacklist():
+        return
+
     bugid = bug['id']
     del bug['id']
     data[bugid] = bug
@@ -400,7 +406,7 @@ def send_email(emails=[], date='today', major=-1, date_range=''):
                 Out.write(body)
             print('Title: %s' % title)
             print('Body:')
-            print(body)
+            #print(body)
     else:
         print('No data for {}'.format(date))
 

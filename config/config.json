@@ -1,0 +1,10 @@
+{
+    "products: blacklist":
+    [
+        "Testing",
+        "MailNews Core"
+    ],
+    "components: blacklist":
+    [
+    ]
+}
