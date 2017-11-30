@@ -21,3 +21,11 @@ def get_products_blacklist():
 
 def get_components_blacklist():
     return set(_get_global()['components: blacklist'])
+
+
+def get_smtp_server():
+    return _get_global()['smtp']
+
+
+def get_sender():
+    return _get_global()['sender']

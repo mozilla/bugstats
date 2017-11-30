@@ -21,7 +21,7 @@ import whatthepatch
 from dateutil.relativedelta import relativedelta
 from libmozdata.bugzilla import Bugzilla
 from libmozdata.socorro import ProductVersions
-from libmozdata import utils, hgmozilla, gmail
+from libmozdata import utils, hgmozilla
 from libmozdata.connection import Query
 import tempfile
 from . import config
@@ -399,7 +399,7 @@ def send_email(emails=[], date='today', major=-1, date_range=''):
         body = body.encode('utf-8')
         if emails:
             f, d = make_csv(date, major, data)
-            gmail.send(emails, title, body, html=True, files=[f])
+            mail.send(emails, title, body, html=True, files=[f])
             shutil.rmtree(d)
         else:
             with open('/tmp/foo.html', 'w') as Out:
