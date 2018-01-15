@@ -25,6 +25,7 @@ from libmozdata import utils, hgmozilla
 from libmozdata.connection import Query
 import tempfile
 from . import config
+from . import mail
 
 
 NIGHTLY_PAT = Bugzilla.get_landing_patterns(channels=['nightly'])
