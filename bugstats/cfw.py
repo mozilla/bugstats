@@ -397,7 +397,7 @@ def send_email(emails=[], date='today', major=-1, date_range=''):
                                enumerate=enumerate)
 
         title = 'Bugs fixed in nightly {} the {}'.format(major, date)
-        body = body.encode('utf-8')
+        # body = body.encode('utf-8')
         if emails:
             f, d = make_csv(date, major, data)
             mail.send(emails, title, body, html=True, files=[f])
@@ -407,7 +407,7 @@ def send_email(emails=[], date='today', major=-1, date_range=''):
                 Out.write(body)
             print('Title: %s' % title)
             print('Body:')
-            #print(body)
+            # print(body)
     else:
         print('No data for {}'.format(date))
 
