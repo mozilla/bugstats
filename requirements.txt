@@ -1,5 +1,5 @@
 argparse>=1.2.1
-libmozdata>=0.1.33
+libmozdata>=0.1.41
 unicodecsv>=0.14.1
 icalendar>=3.10
 whatthepatch>=0.0.4
