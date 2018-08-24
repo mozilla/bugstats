@@ -21,7 +21,7 @@ import whatthepatch
 from dateutil.relativedelta import relativedelta
 from libmozdata.bugzilla import Bugzilla
 from libmozdata.socorro import ProductVersions
-from libmozdata import utils, hgmozilla
+from libmozdata import utils as lmdutils, hgmozilla
 from libmozdata.connection import Query
 import tempfile
 from . import config
@@ -47,7 +47,7 @@ PATCH_INFO = {'changes_size': 0,
 
 
 def get_bz_params(v, date):
-    end_date = utils.get_date(date, -1)
+    end_date = lmdutils.get_date(date, -1)
     status = ['cf_status_firefox{}'.format(v - i) for i in range(3)]
     tracking = 'cf_tracking_firefox{}'.format(v)
     fields = ['id', 'product', 'component', 'assigned_to',
@@ -75,7 +75,7 @@ def get_bz_params(v, date):
 
 def get_start_date(date):
     if isinstance(date, six.string_types):
-        date = utils.get_date_ymd(date)
+        date = lmdutils.get_date_ymd(date)
 
     ics = requests.get('https://calendar.google.com/calendar/ical/mozilla.com_dbq84anr9i8tcnmhabatstv5co%40group.calendar.google.com/public/basic.ics') # NOQA
     cal = icalendar.Calendar.from_ical(ics.text)
@@ -166,7 +166,7 @@ def history_handler(flag, date, invalids, history, data):
                     if m:
                         data[bugid]['softvision'] = True
                 if change['field_name'] == flag and change['added'] == 'fixed':
-                    when = utils.get_date_ymd(changes['when'])
+                    when = lmdutils.get_date_ymd(changes['when'])
                     tomorrow = date + relativedelta(days=1)
                     valid = date <= when < tomorrow
 
@@ -222,6 +222,12 @@ def attachment_handler(attachments, bugid, data):
 
             response = urlopen(mozreview_raw_diff_url)
             patch_data = response.read().decode('ascii', 'ignore')
+        elif attachment['content_type'] == 'text/x-phabricator-request' and attachment['is_obsolete'] == 0:
+            phabricator_url = base64.b64decode(attachment['data']).decode('utf-8')
+            phabricator_raw_diff_url = phabricator_url + '?download=true'
+
+            response = urlopen(phabricator_raw_diff_url)
+            patch_data = response.read().decode('ascii', 'ignore')
 
         if patch_data is not None:
             i = patch_analysis(patch_data)
@@ -242,8 +248,8 @@ def get_hg(bugs):
     def handler_rev(json, data):
         push = json['pushdate'][0]
         push = datetime.datetime.utcfromtimestamp(push)
-        push = utils.as_utc(push)
-        data['date'] = utils.get_date_str(push)
+        push = lmdutils.as_utc(push)
+        data['date'] = lmdutils.get_date_str(push)
         data['backedout'] = json.get('backedoutby', '') != ''
         if not data['backedout']:
             m = backout_pattern.search(json['desc'])
@@ -346,18 +352,18 @@ def make_csv(date, major, bugs):
 def get_bugs(date, major, date_range):
     if major == -1:
         major = get_major()
-    date = utils.get_date_ymd(date)
+    date = lmdutils.get_date_ymd(date)
     if not date_range:
         start_date = get_start_date(date)
-        start_date = utils.get_date_ymd(start_date)
+        start_date = lmdutils.get_date_ymd(start_date)
         end_date = start_date + relativedelta(days=6)
     else:
         dates = date_range.split('|')
-        dates = map(lambda x: utils.get_date_ymd(x.strip(' ')), dates)
+        dates = map(lambda x: lmdutils.get_date_ymd(x.strip(' ')), dates)
         start_date, end_date = tuple(dates)
 
     if start_date <= date <= end_date:
-        sdate = utils.get_date_str(date)
+        sdate = lmdutils.get_date_str(date)
         data = {}
         Bugzilla(get_bz_params(major, sdate),
                  bughandler=bug_handler,
@@ -388,7 +394,7 @@ def get_bugs(date, major, date_range):
 def send_email(emails=[], date='today', major=-1, date_range=''):
     major, data = get_bugs(date, major, date_range)
     if data:
-        date = utils.get_date(date)
+        date = lmdutils.get_date(date)
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template('cfw_email')
         body = template.render(major=major,
