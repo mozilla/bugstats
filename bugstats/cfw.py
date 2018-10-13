@@ -9,6 +9,7 @@ import datetime
 import functools
 import icalendar
 from jinja2 import Environment, FileSystemLoader
+import os
 import shutil
 import requests
 import re
@@ -36,6 +37,8 @@ UTC_PAT = re.compile('UTC\+[^ \t]*')
 COL_PAT = re.compile(':[^:]*')
 SOFTVISION_PAT = re.compile('[^@]+@softvision')
 MOZREVIEW_URL_PAT = 'https://reviewboard.mozilla.org/r/([0-9]+)/'
+PHAB_URL_PAT = re.compile(r'https://phabricator\.services\.mozilla\.com/D([0-9]+)')
+PHAB_API = 'https://phabricator.services.mozilla.com/api/differential.revision.search'
 
 PATCH_INFO = {'changes_size': 0,
               'test_changes_size': 0,
@@ -205,29 +208,39 @@ def patch_analysis(patch):
     return info
 
 
+def is_accepted(url):
+    # extract the revision
+    rev = PHAB_URL_PAT.search(url).group(1)
+    token = os.getenv('PHAB')
+    r = requests.post(PHAB_API, data={'api.token': token,
+                                      'queryKey': 'all',
+                                      'constraints[ids][0]': rev})
+    r.raise_for_status()
+    data = r.json()
+    status = data['result']['data'][0]['fields']['status']
+    if status['closed'] and status.get('value', '') == 'published':
+        return True
+    return False
+
+
 def attachment_handler(attachments, bugid, data):
     info = {}
+
     for attachment in attachments:
-        if sum(flag['name'] == 'review' and flag['status'] == '+' for flag in attachment['flags']) == 0:
+        if attachment['content_type'] != 'text/x-phabricator-request' and sum(flag['name'] == 'review' and flag['status'] == '+' for flag in attachment['flags']) == 0:
             continue
 
         patch_data = None
-
         if attachment['is_patch'] == 1 and attachment['is_obsolete'] == 0:
             patch_data = base64.b64decode(attachment['data']).decode('ascii', 'ignore')
         elif attachment['content_type'] == 'text/x-review-board-request' and attachment['is_obsolete'] == 0:
-            mozreview_url = base64.b64decode(attachment['data']).decode('utf-8')
-            review_num = re.search(MOZREVIEW_URL_PAT, mozreview_url).group(1)
-            mozreview_raw_diff_url = 'https://reviewboard.mozilla.org/r/' + review_num + '/diff/raw/'
-
-            response = urlopen(mozreview_raw_diff_url)
-            patch_data = response.read().decode('ascii', 'ignore')
+            pass
         elif attachment['content_type'] == 'text/x-phabricator-request' and attachment['is_obsolete'] == 0:
             phabricator_url = base64.b64decode(attachment['data']).decode('utf-8')
-            phabricator_raw_diff_url = phabricator_url + '?download=true'
-
-            response = urlopen(phabricator_raw_diff_url)
-            patch_data = response.read().decode('ascii', 'ignore')
+            if is_accepted(phabricator_url):
+                phabricator_raw_diff_url = phabricator_url + '?download=true'
+                response = urlopen(phabricator_raw_diff_url)
+                patch_data = response.read().decode('ascii', 'ignore')
 
         if patch_data is not None:
             i = patch_analysis(patch_data)
