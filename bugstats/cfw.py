@@ -145,14 +145,17 @@ def bug_handler(bug, data):
     del bug['cf_qa_whiteboard']
 
 
-def comment_handler(bug, bugid, data):
+def comment_handler(invalids, bug, bugid, data):
     r = Bugzilla.get_landing_comments(bug['comments'], [], NIGHTLY_PAT)
-    d = {}
-    for i in r:
-        revision = i['revision']
-        d[revision] = {'date': None, 'backedout': False, 'bugid': bugid}
+    if r:
+        d = {}
+        for i in r:
+            revision = i['revision']
+            d[revision] = {'date': None, 'backedout': False, 'bugid': bugid}
 
-    data[int(bugid)]['land'] = d
+        data[int(bugid)]['land'] = d
+    else:
+        invalids.append(int(bugid))
 
 
 def history_handler(flag, date, invalids, history, data):
@@ -366,7 +369,7 @@ def get_bugs(date, major, date_range):
         bugids = list(data.keys())
         invalids = []
         Bugzilla(bugids=bugids,
-                 commenthandler=comment_handler,
+                 commenthandler=functools.partial(comment_handler, invalids),
                  commentdata=data,
                  historyhandler=functools.partial(history_handler, flag, date, invalids),
                  historydata=data,
