@@ -208,50 +208,6 @@ def patch_analysis(patch):
     return info
 
 
-def is_accepted(url):
-    # extract the revision
-    rev = PHAB_URL_PAT.search(url).group(1)
-    token = os.getenv('PHAB')
-    r = requests.post(PHAB_API, data={'api.token': token,
-                                      'queryKey': 'all',
-                                      'constraints[ids][0]': rev})
-    r.raise_for_status()
-    data = r.json()
-    status = data['result']['data'][0]['fields']['status']
-    if status['closed'] and status.get('value', '') == 'published':
-        return True
-    return False
-
-
-def attachment_handler(attachments, bugid, data):
-    info = {}
-
-    for attachment in attachments:
-        if attachment['content_type'] != 'text/x-phabricator-request' and sum(flag['name'] == 'review' and flag['status'] == '+' for flag in attachment['flags']) == 0:
-            continue
-
-        patch_data = None
-        if attachment['is_patch'] == 1 and attachment['is_obsolete'] == 0:
-            patch_data = base64.b64decode(attachment['data']).decode('ascii', 'ignore')
-        elif attachment['content_type'] == 'text/x-review-board-request' and attachment['is_obsolete'] == 0:
-            pass
-        elif attachment['content_type'] == 'text/x-phabricator-request' and attachment['is_obsolete'] == 0:
-            phabricator_url = base64.b64decode(attachment['data']).decode('utf-8')
-            if is_accepted(phabricator_url):
-                phabricator_raw_diff_url = phabricator_url + '?download=true'
-                response = urlopen(phabricator_raw_diff_url)
-                patch_data = response.read().decode('ascii', 'ignore')
-
-        if patch_data is not None:
-            i = patch_analysis(patch_data)
-            info[attachment['id']] = i
-
-    new_info = {}
-    data[int(bugid)]['patches'] = new_info
-    for k in PATCH_INFO.keys():
-        new_info[k] = sum(v[k] for v in info.values())
-
-
 def get_hg(bugs):
     url = hgmozilla.Revision.get_url('nightly')
     queries = []
@@ -275,6 +231,30 @@ def get_hg(bugs):
     for info in bugs.values():
         for rev, i in info['land'].items():
             queries.append(Query(url, {'node': rev}, handler_rev, i))
+
+    if queries:
+        hgmozilla.Revision(queries=queries).wait()
+
+    get_hg_patches(bugs)
+
+
+def get_hg_patches(bugs):
+    url = hgmozilla.RawRevision.get_url('nightly')
+    queries = []
+
+    def handler(patch, data):
+        info = patch_analysis(patch)
+        if 'patches' not in data:
+            data['patches'] = info
+        else:
+            d = data['patches']
+            for k, v in d.items():
+                d[k] = v + info[k]
+
+    for info in bugs.values():
+        for rev, i in info['land'].items():
+            if not i['backedout']:
+                queries.append(Query(url, {'node': rev}, handler, info))
 
     if queries:
         hgmozilla.Revision(queries=queries).wait()
@@ -390,15 +370,13 @@ def get_bugs(date, major, date_range):
                  commentdata=data,
                  historyhandler=functools.partial(history_handler, flag, date, invalids),
                  historydata=data,
-                 attachmenthandler=attachment_handler,
-                 attachmentdata=data,
-                 attachment_include_fields=['id', 'data', 'is_obsolete', 'creation_time', 'flags', 'is_patch', 'content_type'],
                  comment_include_fields=['text']).get_data().wait()
 
         for invalid in invalids:
             del data[invalid]
 
         get_hg(data)
+
         return major, prepare(major, data)
 
     return major, []
