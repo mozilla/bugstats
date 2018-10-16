@@ -238,6 +238,15 @@ def get_hg(bugs):
     if queries:
         hgmozilla.Revision(queries=queries).wait()
 
+    # clean
+    for info in bugs.values():
+        torm = []
+        for rev, i in info['land'].items():
+            if not i['bugid']:
+                torm.append(rev)
+        for x in torm:
+            del info['land'][x]
+
     get_hg_patches(bugs)
 
 
