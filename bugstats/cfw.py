@@ -155,7 +155,7 @@ def comment_handler(invalids, bug, bugid, data):
 
         data[int(bugid)]['land'] = d
     else:
-        invalids.append(int(bugid))
+        invalids.add(int(bugid))
 
 
 def history_handler(flag, date, invalids, history, data):
@@ -177,7 +177,7 @@ def history_handler(flag, date, invalids, history, data):
                     valid = date <= when < tomorrow
 
     if not valid:
-        invalids.append(bugid)
+        invalids.add(bugid)
 
 
 def patch_analysis(patch):
@@ -376,7 +376,7 @@ def get_bugs(date, major, date_range):
         flag = 'cf_status_firefox{}'.format(major)
 
         bugids = list(data.keys())
-        invalids = []
+        invalids = set()
         Bugzilla(bugids=bugids,
                  commenthandler=functools.partial(comment_handler, invalids),
                  commentdata=data,
